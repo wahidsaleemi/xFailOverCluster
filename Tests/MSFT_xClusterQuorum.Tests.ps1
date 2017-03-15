@@ -139,7 +139,7 @@ Describe 'xClusterQuorum (NodeMajority / WS2012R2)' {
     }
 }
 
-Describe 'xClusterQuorum (NodeMajority / WS2016Prev)' {
+Describe 'xClusterQuorum (NodeMajority / WS2016)' {
 
     InModuleScope $ModuleName {
     
@@ -258,7 +258,7 @@ Describe 'xClusterQuorum (NodeAndDiskMajority / WS2012R2)' {
     }
 }
 
-Describe 'xClusterQuorum (NodeAndDiskMajority / WS2016Prev)' {
+Describe 'xClusterQuorum (NodeAndDiskMajority / WS2016)' {
 
     InModuleScope $ModuleName {
     
@@ -395,7 +395,7 @@ Describe 'xClusterQuorum (NodeAndFileShareMajority / WS2012R2)' {
     }
 }
 
-Describe 'xClusterQuorum (NodeAndFileShareMajority / WS2016Prev)' {
+Describe 'xClusterQuorum (NodeAndFileShareMajority / WS2016)' {
 
     InModuleScope $ModuleName {
     
@@ -532,7 +532,7 @@ Describe 'xClusterQuorum (NodeAndDiskMajority / WS2012R2)' {
     }
 }
 
-Describe 'xClusterQuorum (NodeAndDiskMajority / WS2016Prev)' {
+Describe 'xClusterQuorum (NodeAndDiskMajority / WS2016)' {
 
     InModuleScope $ModuleName {
     
@@ -593,3 +593,78 @@ Describe 'xClusterQuorum (NodeAndDiskMajority / WS2016Prev)' {
     }
 }
 
+
+## Test CloudWitness quorum type
+Describe 'xClusterQuorum (NodeAndFileShareMajority / WS2016)' {
+
+    InModuleScope $ModuleName {
+    
+        $TestParameter = @{
+            IsSingleInstance = 'Yes'
+            Type             = 'CloudWitness'
+            Resource         = 'storageaccount01'
+            ResourceKey      = 'storageaccountkey=='
+        }
+
+        Mock -CommandName 'Get-ClusterQuorum' -MockWith {
+            [PSCustomObject] @{
+                Cluster        = 'CLUSTER01'
+                QuorumType     = 'Majority'
+                QuorumResource = [PSCustomObject] @{
+                    Name           = 'Cloud Witness'
+                    OwnerGroup     = 'Cluster Group'
+                    ResourceType   = [PSCustomObject] @{
+                        DisplayName    = 'Cloud Witness'
+                    }
+                }
+            }
+        }
+        
+        Mock -CommandName 'Get-ClusterParameter' -ParameterFilter { $Name -eq 'AccountName' } -MockWith {
+            @(
+                [PSCustomObject] @{
+                    ClusterObject = 'Cloud Witness'
+                    Name          = 'AccountName'
+                    IsReadOnly    = 'False'
+                    ParameterType = 'String'
+                    Value         = 'storageaccount01'
+                }
+            )
+        }
+
+        Mock -CommandName 'Set-ClusterQuorum' -ParameterFilter { $AccountName -eq 'storageaccount01' -and $AccessKey 'storageaccountkey==' -and $Endpoint 'core.windows.net'} -MockWith {
+        }
+        
+        Context 'Validate Get-TargetResource method' {
+
+            It 'Returns current configuration' {
+
+                $Result = Get-TargetResource @TestParameter
+
+                $Result.IsSingleInstance | Should Be $TestParameter.IsSingleInstance
+                $Result.Type             | Should Be $TestParameter.Type
+                $Result.Resource         | Should Be $TestParameter.Resource
+            }
+        }
+        
+        Context 'Validate Set-TargetResource method' {
+
+            It 'Set the new configuration' {
+
+                $Result = Set-TargetResource @TestParameter
+
+                Assert-MockCalled -CommandName 'Set-ClusterQuorum' -ParameterFilter { $AccountName -eq 'storageaccount01' -and $ResourceKey -and $Endpoint 'core.windows.net' } -Times 1
+            }
+        }
+        
+        Context 'Validate Test-TargetResource method' {
+
+            It 'Check the current configuration' {
+
+                $Result = Test-TargetResource @TestParameter
+
+                $Result | Should Be $true
+            }
+        }
+    }
+}

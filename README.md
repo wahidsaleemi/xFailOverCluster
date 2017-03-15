@@ -22,8 +22,9 @@ Please check out common DSC Resources [contributing guidelines](https://github.c
 ### xClusterQuorum (Unreleased)
 
 * **IsSingleInstance** Always set to `Yes` to prevent multiple quorum settings per cluster.
-* **Type** Quorum type to use: *NodeMajority*, *NodeAndDiskMajority*, *NodeAndFileShareMajority*, *DiskOnly*
+* **Type** Quorum type to use: *NodeMajority*, *NodeAndDiskMajority*, *NodeAndFileShareMajority*, *DiskOnly*, *CloudWitness*
 * **Resource** The name of the disk or file share resource to use as witness. Is optional with *NodeMajority* type.  
+* **ResourceKey** Only used for *CloudWitness* type. It is the full storage account key.
 
 ### xClusterDisk (Unreleased)
 

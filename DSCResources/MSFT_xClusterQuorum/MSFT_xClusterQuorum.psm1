@@ -10,11 +10,14 @@ function Get-TargetResource
         [String] $IsSingleInstance,
 
         [Parameter(Mandatory = $false)]
-        [ValidateSet('NodeMajority', 'NodeAndDiskMajority', 'NodeAndFileShareMajority', 'DiskOnly')]
+        [ValidateSet('NodeMajority', 'NodeAndDiskMajority', 'NodeAndFileShareMajority', 'DiskOnly', 'CloudWitness')]
         [String] $Type,
         
         [Parameter(Mandatory = $false)]
-        [String] $Resource
+        [String] $Resource,
+                
+        [Parameter(Mandatory = $false)]
+        [String] $ResourceKey						 
     )
 
     $ClusterQuorum = Get-ClusterQuorum
@@ -35,6 +38,10 @@ function Get-TargetResource
             {
                 $ClusterQuorumType = 'NodeAndFileShareMajority'
             }
+            elseif ($ClusterQuorum.QuorumResource.ResourceType.DisplayName -eq 'Cloud Witness')
+            {
+                $ClusterQuorumType = 'CloudWitness'
+            }																							   		 
             else
             {
                 throw "Unknown quorum resource: $($ClusterQuorum.QuorumResource)"
@@ -67,6 +74,10 @@ function Get-TargetResource
     {
         $ClusterQuorumResource = $ClusterQuorum.QuorumResource | Get-ClusterParameter -Name SharePath | Select-Object -ExpandProperty Value
     }
+    elseif ($ClusterQuorumType -eq 'CloudWitness')
+    {
+        $ClusterQuorumResource = $ClusterQuorum.QuorumResource | Get-ClusterParameter -Name AccountName | Select-Object -ExpandProperty Value
+    }
     else
     {
         $ClusterQuorumResource = [String] $ClusterQuorum.QuorumResource.Name
@@ -89,11 +100,14 @@ function Set-TargetResource
         [String] $IsSingleInstance,
 
         [Parameter(Mandatory = $false)]
-        [ValidateSet('NodeMajority', 'NodeAndDiskMajority', 'NodeAndFileShareMajority', 'DiskOnly')]
+        [ValidateSet('NodeMajority', 'NodeAndDiskMajority', 'NodeAndFileShareMajority', 'DiskOnly', 'CloudWitness')]
         [String] $Type,
         
         [Parameter(Mandatory = $false)]
-        [String] $Resource
+        [String] $Resource,
+
+        [Parameter(Mandatory = $false)]
+        [String] $ResourceKey
     )
 
     switch ($Type)
@@ -113,6 +127,10 @@ function Set-TargetResource
         'DiskOnly' {
             Set-ClusterQuorum -DiskOnly $Resource
         }
+
+        'CloudWitness' {
+            Set-ClusterQuorum -CloudWitness -AccountName $Resource -AccessKey $ResourceKey -Endpoint 'core.windows.net'
+        }
     }
 }
 
@@ -131,7 +149,10 @@ function Test-TargetResource
         [String] $Type,
         
         [Parameter(Mandatory = $false)]
-        [String] $Resource
+        [String] $Resource,
+                
+        [Parameter(Mandatory = $false)]
+        [String] $ResourceKey 
     )
     
     $CurrentQuorum = Get-TargetResource -IsSingleInstance $IsSingleInstance
